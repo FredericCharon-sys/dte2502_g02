@@ -24,6 +24,8 @@ from tensorflow.keras.regularizers import l2'''
 
 # from tensorflow.keras.losses import Huber
 
+# changed the loss_functions
+
 def huber_loss(y_true, y_pred, delta=1):
     """Keras implementation for huber loss
     loss = {
@@ -70,6 +72,11 @@ def mean_huber_loss(y_true, y_pred, delta=1):
     """
     return torch.mean(huber_loss(y_true, y_pred, delta))
 
+
+class NetAgent_1(nn.Module):
+
+    def __init__(self):
+        super(NetAgent_1, self).__init__()
 
 class Agent():
     """Base class for all agents
@@ -393,8 +400,11 @@ class DeepQLearningAgent(Agent):
         # define the input layer, shape is dependent on the board size and frames
         with open('model_config/{:s}.json'.format(self._version), 'r') as f:
             m = json.loads(f.read())
+        #print(m)
 
-        input_board = Input((self._board_size, self._board_size, self._n_frames,), name='input')
+        #using the version 17.1
+
+        """input_board = Input((self._board_size, self._board_size, self._n_frames,), name='input')
         x = input_board
         for layer in m['model']:
             l = m['model'][layer]
@@ -408,8 +418,28 @@ class DeepQLearningAgent(Agent):
         out = Dense(self._n_actions, activation='linear', name='action_values')(x)
         model = Model(inputs=input_board, outputs=out)
         model.compile(optimizer=RMSprop(0.0005), loss=mean_huber_loss)
+"""
 
-        """
+        # used the layers from json file v17.1
+
+        input_tensor = torch.randn(self._n_frames, self._board_size, self._board_size)
+        print(input_tensor.size())
+        x = nn.Conv2d(2, 16, (3, 3))(input_tensor)
+        x = nn.ReLU()(x)
+        x = nn.Conv2d(16, 32, (3, 3))(x)
+        x = nn.ReLU()(x)
+        x = nn.Conv2d(32, 64, (6, 6))(x)
+        x = nn.ReLU()(x)
+        x = nn.Flatten()(x)
+
+        x = nn.Linear(1, 64)(x)
+        x = nn.ReLU()(x)
+
+        out = nn.Linear(64, self._n_actions)(x)
+        print(out.size())
+
+        model = nn.Module()
+
         input_board = Input((self._board_size, self._board_size, self._n_frames,), name='input')
         x = Conv2D(16, (3,3), activation='relu', data_format='channels_last')(input_board)
         x = Conv2D(32, (3,3), activation='relu', data_format='channels_last')(x)
@@ -423,7 +453,7 @@ class DeepQLearningAgent(Agent):
         model = Model(inputs=input_board, outputs=out)
         model.compile(optimizer=RMSprop(0.0005), loss=mean_huber_loss)
         # model.compile(optimizer=RMSprop(0.0005), loss='mean_squared_error')
-        """
+
 
         return model
 
