@@ -2,12 +2,8 @@
 # useful to study different iterations
 
 import numpy as np
-from agent import DeepQLearningAgent, AdvantageActorCriticAgent
-
-'''
-following agents are not needed for the assignment
-'''
-    # PolicyGradientAgent, AdvantageActorCriticAgent, HamiltonianCycleAgent, BreadthFirstSearchAgent
+from agent import DeepQLearningAgent, PolicyGradientAgent, \
+        AdvantageActorCriticAgent, HamiltonianCycleAgent, BreadthFirstSearchAgent
 from game_environment import Snake, SnakeNumpy
 from utils import visualize_game
 import json

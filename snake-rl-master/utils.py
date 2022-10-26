@@ -1,5 +1,5 @@
 # some utility functions for the project
-# from tqdm import tqdm
+from tqdm import tqdm
 import matplotlib.pyplot as plt
 from matplotlib.patches import Rectangle
 import matplotlib.animation as animation
