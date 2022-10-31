@@ -326,11 +326,16 @@ class DeepQLearningAgent(Agent):
             of shape board.shape[0] * num actions
         """
         # to correct dimensions and normalize
+        print(type(board))
         board = self._prepare_input(board)
         # the default model to use
+
+        print(type(board))
         if model is None:
             model = self._model
         model_outputs = model.predict_on_batch(board)
+        print(board.shape)
+        print(model_outputs.shape)
         return model_outputs
 
     def _normalize_board(self, board):
@@ -387,7 +392,9 @@ class DeepQLearningAgent(Agent):
             l = m['model'][layer]
             if('Conv2D' in layer):
                 # add convolutional layer
+                print('before conv', x.shape)
                 x = Conv2D(**l)(x)
+
             if('Flatten' in layer):
                 x = Flatten()(x)
             if('Dense' in layer):
@@ -395,7 +402,6 @@ class DeepQLearningAgent(Agent):
         out = Dense(self._n_actions, activation='linear', name='action_values')(x)
         model = Model(inputs=input_board, outputs=out)
         model.compile(optimizer=RMSprop(0.0005), loss=mean_huber_loss)
-                
         """
         input_board = Input((self._board_size, self._board_size, self._n_frames,), name='input')
         x = Conv2D(16, (3,3), activation='relu', data_format='channels_last')(input_board)

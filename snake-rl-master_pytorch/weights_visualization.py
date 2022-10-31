@@ -1,11 +1,13 @@
 import numpy as np
-from agent import DeepQLearningAgent, BreadthFirstSearchAgent
+from agent import DeepQLearningAgent
 from game_environment import Snake
 import matplotlib.pyplot as plt
-from tensorflow.keras import Model
+# from tensorflow.keras import Model
 import json
 import os
 import sys
+
+import torch.nn as nn
 
 # some global variables
 version = 'v15.1'
@@ -43,7 +45,7 @@ env.print_game()
 
 # define temporary model to get intermediate outputs
 layer_num = 1
-model_temp = Model(inputs=agent._model.input, outputs=agent._model.layers[layer_num].output)
+model_temp = nn.Module(inputs=agent._model.input, outputs=agent._model.layers[layer_num].output)
 output_temp = model_temp.predict(s.reshape(1, board_size, board_size, frames))[0,:,:,:]
 print('selected layer shape : ', output_temp.shape)
 

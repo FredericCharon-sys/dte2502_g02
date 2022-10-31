@@ -92,8 +92,6 @@ class AgentModel(nn.Module):
     def forward(self, x):
         return self.model(x)
 
-    def setWeigths(self, weights):
-        pass
 
 
 
@@ -343,8 +341,12 @@ class DeepQLearningAgent(Agent):
         board : Numpy array
             Processed and normalized board
         """
+        print('`\nraw board:', board.shape)
         if (board.ndim == 3):
             board = board.reshape((1,) + self._input_shape)
+        board = np.rollaxis(board, 3, 1)
+        print('axis rolled:', board.shape)
+
         board = self._normalize_board(board.copy())
         return board.copy()
 
@@ -365,12 +367,12 @@ class DeepQLearningAgent(Agent):
             of shape board.shape[0] * num actions
         """
         # to correct dimensions and normalize
-        board = self._prepare_input(board)
+        board = torch.Tensor(self._prepare_input(board))
         # the default model to use
         if model is None:
             model = self._model
-        model_outputs = model.predict_on_batch(board)
-        return model_outputs
+
+        return model(board[0]).detach().numpy()
 
     def _normalize_board(self, board):
         """Normalize the board before input to the network
@@ -444,8 +446,6 @@ class DeepQLearningAgent(Agent):
         model = AgentModel()
         criterion = mean_huber_loss
         optimizer = torch.optim.RMSprop(model.parameters(), lr=0.0005)
-        print(model)
-        print(model.fc1.weight)
         input_tensor = torch.randn(self._n_frames, self._board_size, self._board_size)
         out = model(input_tensor)
 
@@ -562,10 +562,13 @@ class DeepQLearningAgent(Agent):
             assert isinstance(iteration, int), "iteration should be an integer"
         else:
             iteration = 0
-        self._model.load_weights("{}/model_{:04d}.h5".format(file_path, iteration))
+        print(iteration)
+        print(file_path)
+        model = torch.load("{}/model_{:04d}.h5".format(file_path, iteration))
         if (self._use_target_net):
             self._target_net.load_weights("{}/model_{:04d}_target.h5".format(file_path, iteration))
         # print("Couldn't locate models at {}, check provided path".format(file_path))
+        return model
 
     def print_models(self):
         """Print the current models using summary method"""
@@ -625,14 +628,17 @@ class DeepQLearningAgent(Agent):
         return loss
 
     def update_target_net(self):
-        pass
+
         """Update the weights of the target network, which is kept
         static for a few iterations to stabilize the other network.
         This should not be updated very frequently
-        """"""
+        """
         if (self._use_target_net):
-            self._target_net.set_weights(self._model.get_weights())
-"""
+            m_dict = self._model.state_dict()
+            t_dict = self._target_net.state_dict()
+            for key in m_dict.keys():
+                t_dict[key] = m_dict[key]
+
     def compare_weights(self):
         """Simple utility function to heck if the model and target
         network have the same weights or not
