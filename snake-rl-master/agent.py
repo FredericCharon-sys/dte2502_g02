@@ -326,16 +326,17 @@ class DeepQLearningAgent(Agent):
             of shape board.shape[0] * num actions
         """
         # to correct dimensions and normalize
-        print(type(board))
+        # print(type(board))
         board = self._prepare_input(board)
         # the default model to use
 
-        print(type(board))
+        # print(type(board))
         if model is None:
             model = self._model
+        # print(board[0].shape)
         model_outputs = model.predict_on_batch(board)
-        print(board.shape)
-        print(model_outputs.shape)
+        # print(board.shape)
+        # print(model_outputs.shape)
         return model_outputs
 
     def _normalize_board(self, board):
@@ -386,37 +387,44 @@ class DeepQLearningAgent(Agent):
         with open('model_config/{:s}.json'.format(self._version), 'r') as f:
             m = json.loads(f.read())
         
-        input_board = Input((self._board_size, self._board_size, self._n_frames,), name='input')
+        """input_board = Input((self._board_size, self._board_size, self._n_frames,), name='input')
         x = input_board
+        print("input", x.shape)
         for layer in m['model']:
             l = m['model'][layer]
             if('Conv2D' in layer):
                 # add convolutional layer
-                print('before conv', x.shape)
                 x = Conv2D(**l)(x)
 
             if('Flatten' in layer):
                 x = Flatten()(x)
+                print(x.shape)
             if('Dense' in layer):
                 x = Dense(**l)(x)
         out = Dense(self._n_actions, activation='linear', name='action_values')(x)
         model = Model(inputs=input_board, outputs=out)
-        model.compile(optimizer=RMSprop(0.0005), loss=mean_huber_loss)
-        """
+        model.compile(optimizer=RMSprop(0.0005), loss=mean_huber_loss)"""
+
         input_board = Input((self._board_size, self._board_size, self._n_frames,), name='input')
         x = Conv2D(16, (3,3), activation='relu', data_format='channels_last')(input_board)
         x = Conv2D(32, (3,3), activation='relu', data_format='channels_last')(x)
         x = Conv2D(64, (6,6), activation='relu', data_format='channels_last')(x)
+        # print("before flatten", x.shape)
+
         x = Flatten()(x)
+        # print("after flatten", x.shape)
         x = Dense(64, activation = 'relu', name='action_prev_dense')(x)
+        # print("after fc1", x.shape)
         # this layer contains the final output values, activation is linear since
         # the loss used is huber or mse
         out = Dense(self._n_actions, activation='linear', name='action_values')(x)
+        # print("after out", out.shape)
+
         # compile the model
         model = Model(inputs=input_board, outputs=out)
         model.compile(optimizer=RMSprop(0.0005), loss=mean_huber_loss)
         # model.compile(optimizer=RMSprop(0.0005), loss='mean_squared_error')
-        """
+
 
         return model
 
@@ -557,6 +565,7 @@ class DeepQLearningAgent(Agent):
         target = (1-a)*target + a*discounted_reward
         # fit
         loss = self._model.train_on_batch(self._normalize_board(s), target)
+        print('loss', loss)
         # loss = round(loss, 5)
         return loss
 
@@ -704,6 +713,7 @@ class AdvantageActorCriticAgent(PolicyGradientAgent):
         x = Conv2D(16, (3,3), activation='relu', data_format='channels_last')(input_board)
         x = Conv2D(32, (3,3), activation='relu', data_format='channels_last')(x)
         x = Flatten()(x)
+        # print("after flatten", x.shape)
         x = Dense(64, activation='relu', name='dense')(x)
         action_logits = Dense(self._n_actions, activation='linear', name='action_logits')(x)
         state_values = Dense(1, activation='linear', name='state_values')(x)

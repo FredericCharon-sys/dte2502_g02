@@ -73,26 +73,62 @@ def mean_huber_loss(y_true, y_pred, delta=1):
     return torch.mean(huber_loss(y_true, y_pred, delta))
 
 
-class AgentModel(nn.Module):
+class DeepQModule(nn.Module):
 
     def __init__(self):
-        super(AgentModel, self).__init__()
+        super(DeepQModule, self).__init__()
+        self.conv1 = nn.Conv2d(2, 16, (3, 3))
+        self.conv2 = nn.Conv2d(16, 32, (3, 3))
+        self.conv3 = nn.Conv2d(32, 64, (6, 6))
+        self.flat = nn.Flatten()
+        self.fc1 = nn.Linear(64, 64)
+        self.out = nn.Linear(64, 4)
+
+    def forward(self, x):
+        x = F.relu(self.conv1(x))
+        x = F.relu(self.conv2(x))
+        x = F.relu(self.conv3(x))
+        # print("before flatten", x.shape)
+        x = self.flat(x)
+        # x = torch.reshape(x, (-1,))
+
+        # print("after flatten", x.shape)
+        x = F.relu(self.fc1(x))
+        # print("after fc1", x.shape)
+
+        x = self.out(x)
+        # print("after out", x.shape)
+
+        return x
+
+class AACModule(nn.Module):
+    def __init__(self):
+        super(AACModule, self).__init__()
         self.model = torch.nn.Sequential(OrderedDict([
             ('conv1', nn.Conv2d(2, 16, (3, 3))),
             ('relu1', nn.ReLU()),
             ('conv2', nn.Conv2d(16, 32, (3, 3))),
             ('relu2', nn.ReLU()),
-            ('conv3', nn.Conv2d(32, 64, (6, 6))),
-            ('relu3', nn.ReLU()),
             ('flat', nn.Flatten()),
-            ('fc1', nn.Linear(1, 64)),
-            ('relu4', nn.ReLU()),
-            ('out', nn.Linear(64, 4))]))
 
-    def forward(self, x):
-        return self.model(x)
+        ]))
+    """
+    input_board = Input((self._board_size, self._board_size, self._n_frames,))
+        x = Conv2D(16, (3, 3), activation='relu', data_format='channels_last')(input_board)
+        x = Conv2D(32, (3, 3), activation='relu', data_format='channels_last')(x)
+        x = Flatten()(x)
+        x = Dense(64, activation='relu', name='dense')(x)
+        action_logits = Dense(self._n_actions, activation='linear', name='action_logits')(x)
+        state_values = Dense(1, activation='linear', name='state_values')(x)
 
+        model_logits = Model(inputs=input_board, outputs=action_logits)
+        model_full = Model(inputs=input_board, outputs=[action_logits, state_values])
+        model_values = Model(inputs=input_board, outputs=state_values)
+        # updates are calculated in the train_agent function
 
+        return model_logits, model_full, model_values
+    
+    """
 
 
 class Agent():
@@ -341,11 +377,11 @@ class DeepQLearningAgent(Agent):
         board : Numpy array
             Processed and normalized board
         """
-        print('`\nraw board:', board.shape)
+        # print('`\nraw board:', board.shape)
         if (board.ndim == 3):
             board = board.reshape((1,) + self._input_shape)
         board = np.rollaxis(board, 3, 1)
-        print('axis rolled:', board.shape)
+        # print('axis rolled:', board.shape)
 
         board = self._normalize_board(board.copy())
         return board.copy()
@@ -371,8 +407,13 @@ class DeepQLearningAgent(Agent):
         # the default model to use
         if model is None:
             model = self._model
-
-        return model(board[0]).detach().numpy()
+        # print('shape', torch.squeeze(board[0]).shape)
+        outputs = []
+        """for i in board:
+            outputs.append(model(i).detach().numpy())"""
+        # print('output', model(board[0]).shape)
+        # return np.array(outputs)
+        return model(board).detach().numpy()
 
     def _normalize_board(self, board):
         """Normalize the board before input to the network
@@ -443,11 +484,12 @@ class DeepQLearningAgent(Agent):
 
         # used the layers from json file v17.1
 
-        model = AgentModel()
+        model = DeepQModule()
         criterion = mean_huber_loss
         optimizer = torch.optim.RMSprop(model.parameters(), lr=0.0005)
         input_tensor = torch.randn(self._n_frames, self._board_size, self._board_size)
-        out = model(input_tensor)
+        # print('input', input_tensor.shape)
+        # out = model(input_tensor)
 
         """print(input_tensor.size())
         x = nn.Conv2d(2, 16, (3, 3))(input_tensor)
@@ -536,9 +578,11 @@ class DeepQLearningAgent(Agent):
             assert isinstance(iteration, int), "iteration should be an integer"
         else:
             iteration = 0
-        self._model.save_weights("{}/model_{:04d}.h5".format(file_path, iteration))
+        torch.save(self._model.state_dict(), "{}/model_{:04d}_target.pt".format(file_path, iteration))
+        # self._model.save_weights("{}/model_{:04d}.h5".format(file_path, iteration))
         if (self._use_target_net):
-            self._target_net.save_weights("{}/model_{:04d}_target.h5".format(file_path, iteration))
+            torch.save(self._model.state_dict(), "{}/model_{:04d}_target.pt".format(file_path, iteration))
+            #self._target_net.save_weights("{}/model_{:04d}_target.h5".format(file_path, iteration))
 
     def load_model(self, file_path='', iteration=None):
         """ load any existing models, if available """
@@ -564,9 +608,11 @@ class DeepQLearningAgent(Agent):
             iteration = 0
         print(iteration)
         print(file_path)
-        model = torch.load("{}/model_{:04d}.h5".format(file_path, iteration))
+        model = torch.load("{}/model_{:04d}.pt".format(file_path, iteration))
         if (self._use_target_net):
-            self._target_net.load_weights("{}/model_{:04d}_target.h5".format(file_path, iteration))
+            model = torch.load("{}/model_{:04d}_target.pt".format(file_path, iteration))
+
+            # self._target_net.load_weights("{}/model_{:04d}_target.h5".format(file_path, iteration))
         # print("Couldn't locate models at {}, check provided path".format(file_path))
         return model
 
@@ -607,6 +653,9 @@ class DeepQLearningAgent(Agent):
             loss : float
             The current error (error metric is defined in reset_models)
         """
+        criterion = mean_huber_loss
+        optimizer = torch.optim.RMSprop(self._model.parameters(), lr=0.0005)
+
         s, a, r, next_s, done, legal_moves = self._buffer.sample(batch_size)
         if (reward_clip):
             r = np.sign(r)
@@ -623,7 +672,11 @@ class DeepQLearningAgent(Agent):
         # we bother only with the difference in reward estimate at the selected action
         target = (1 - a) * target + a * discounted_reward
         # fit
-        loss = self._model.train_on_batch(self._normalize_board(s), target)
+        # print(self._normalize_board(s).shape)
+        loss = criterion(torch.Tensor(next_model_outputs), torch.Tensor(target))
+        # loss.backward()
+        optimizer.step()
+        # print('loss', loss)
         # loss = round(loss, 5)
         return loss
 
@@ -763,7 +816,9 @@ class AdvantageActorCriticAgent(DeepQLearningAgent):
                                     buffer_size=buffer_size, gamma=gamma,
                                     n_actions=n_actions, use_target_net=use_target_net,
                                     version=version)
-        self._optimizer = tf.keras.optimizers.RMSprop(5e-4)
+        self._optimizer = torch.optim.RMSprop
+
+        # self._optimizer = nn.optimizers.RMSprop(5e-4)
 
     def _agent_model(self):
         """Returns the models which evaluate prob logits and action values
@@ -777,6 +832,8 @@ class AdvantageActorCriticAgent(DeepQLearningAgent):
         model_full : TensorFlow Graph
             A2C model complete graph
         """
+
+
         input_board = Input((self._board_size, self._board_size, self._n_frames,))
         x = Conv2D(16, (3, 3), activation='relu', data_format='channels_last')(input_board)
         x = Conv2D(32, (3, 3), activation='relu', data_format='channels_last')(x)
