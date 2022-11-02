@@ -51,7 +51,7 @@ agent = DeepQLearningAgent(board_size=board_size, frames=frames, n_actions=n_act
 # agent = PolicyGradientAgent(board_size=board_size, frames=frames, n_actions=n_actions, 
         # buffer_size=2000, version=version)
 # agent = AdvantageActorCriticAgent(board_size=board_size, frames=frames, n_actions=n_actions,
-#                                 buffer_size=10000, version=version)
+                                  # buffer_size=10000, version=version)
 # agent.print_models()
 
 # check in the same order as class hierarchy

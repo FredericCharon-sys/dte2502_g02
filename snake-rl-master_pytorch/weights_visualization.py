@@ -1,17 +1,18 @@
 import numpy as np
-from agent import DeepQLearningAgent
+from agent import DeepQLearningAgent, DeepQModule
 from game_environment import Snake
 import matplotlib.pyplot as plt
 # from tensorflow.keras import Model
 import json
 import os
+import torch
 import sys
 
 import torch.nn as nn
 
 # some global variables
-version = 'v15.1'
-iteration = 188000
+version = 'v17.1'
+iteration = 20000
 
 with open('model_config/{:s}.json'.format(version), 'r') as f:
     m = json.loads(f.read())
@@ -45,14 +46,19 @@ env.print_game()
 
 # define temporary model to get intermediate outputs
 layer_num = 1
-model_temp = nn.Module(inputs=agent._model.input, outputs=agent._model.layers[layer_num].output)
-output_temp = model_temp.predict(s.reshape(1, board_size, board_size, frames))[0,:,:,:]
+model_temp = DeepQModule()
+input = agent._prepare_input(s.reshape(1, board_size, board_size, frames))
+output_temp = model_temp((torch.Tensor(input)))
 print('selected layer shape : ', output_temp.shape)
 
 # save layer weights
 plt.clf()
-w = agent._model.layers[layer_num].weights[0].numpy()
-nrows, ncols = (w.shape[2]*w.shape[3])//8, 8
+w = []
+st_dict = model_temp.state_dict()
+for i in st_dict.keys():
+    w.append(st_dict[i])
+# w = agent._model.layers[layer_num].weights[0].numpy()
+nrows, ncols = (len(w[0][0][0])*len(w[0][0][0][0]))//8, 8
 fig, axs = plt.subplots(nrows, ncols, figsize=(17, 17))
 for i in range(nrows):
     for j in range(ncols):

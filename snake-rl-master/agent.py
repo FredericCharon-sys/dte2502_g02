@@ -565,7 +565,7 @@ class DeepQLearningAgent(Agent):
         target = (1-a)*target + a*discounted_reward
         # fit
         loss = self._model.train_on_batch(self._normalize_board(s), target)
-        print('loss', loss)
+        # print('loss', loss)
         # loss = round(loss, 5)
         return loss
 
