@@ -13,16 +13,6 @@ import torch
 import torch.nn as nn
 from torch.nn import functional as F
 
-'''import tensorflow as tf
-from tensorflow.keras.regularizers import l2
-from tensorflow.keras.optimizers import RMSprop, SGD, Adam
-import tensorflow.keras.backend as K
-from tensorflow.keras.layers import Input, Conv2D, Flatten, Dense, Softmax, MaxPool2D
-from tensorflow.keras import Model
-from tensorflow.keras.regularizers import l2'''
-
-
-# from tensorflow.keras.losses import Huber
 
 # changed the loss_functions
 
@@ -74,7 +64,9 @@ def mean_huber_loss(y_true, y_pred, delta=1):
 
 
 class DeepQModule(nn.Module):
-
+    """
+    adding an nn.Module class for the model
+    """
     def __init__(self):
         super(DeepQModule, self).__init__()
         self.conv1 = nn.Conv2d(2, 16, (3, 3))
@@ -88,15 +80,11 @@ class DeepQModule(nn.Module):
         x = F.relu(self.conv1(x))
         x = F.relu(self.conv2(x))
         x = F.relu(self.conv3(x))
-        # print("before flatten", x.shape)
         x = self.flat(x)
-        # x = torch.reshape(x, (-1,))
-        # print("after flatten", x.shape)
         x = F.relu(self.fc1(x))
-        # print("after fc1", x.shape)
         x = self.out(x)
-        # print("after out", x.shape)
         return x
+
 
 class AACModule(nn.Module):
     def __init__(self, p):
@@ -109,7 +97,6 @@ class AACModule(nn.Module):
         self.a_log = nn.Linear(64, 4)
         self.s_val = nn.Linear(64, 1)
 
-
     def forward(self, x):
         x = F.relu(self.conv1(x))
         x = F.relu(self.conv2(x))
@@ -121,24 +108,6 @@ class AACModule(nn.Module):
             return self.s_val(x)
         elif self.param == 2:       # p==2: model_full
             return self.a_log(x), self.s_val(x)
-
-    """
-    input_board = Input((self._board_size, self._board_size, self._n_frames,))
-        x = Conv2D(16, (3, 3), activation='relu', data_format='channels_last')(input_board)
-        x = Conv2D(32, (3, 3), activation='relu', data_format='channels_last')(x)
-        x = Flatten()(x)
-        x = Dense(64, activation='relu', name='dense')(x)
-        action_logits = Dense(self._n_actions, activation='linear', name='action_logits')(x)
-        state_values = Dense(1, activation='linear', name='state_values')(x)
-
-        model_logits = Model(inputs=input_board, outputs=action_logits)
-        model_full = Model(inputs=input_board, outputs=[action_logits, state_values])
-        model_values = Model(inputs=input_board, outputs=state_values)
-        # updates are calculated in the train_agent function
-
-        return model_logits, model_full, model_values
-    
-    """
 
 
 class Agent():
@@ -210,6 +179,7 @@ class Agent():
         self._board_grid = np.arange(0, self._board_size ** 2) \
             .reshape(self._board_size, -1)
         self._version = version
+
 
     def get_gamma(self):
         """Returns the agent's gamma value
@@ -475,69 +445,10 @@ class DeepQLearningAgent(Agent):
         # define the input layer, shape is dependent on the board size and frames
         with open('model_config/{:s}.json'.format(self._version), 'r') as f:
             m = json.loads(f.read())
-        # print(m)
 
-        # using the version 17.1
-
-        """input_board = Input((self._board_size, self._board_size, self._n_frames,), name='input')
-        x = input_board
-        for layer in m['model']:
-            l = m['model'][layer]
-            if ('Conv2D' in layer):
-                # add convolutional layer
-                x = Conv2D(**l)(x)
-            if ('Flatten' in layer):
-                x = Flatten()(x)
-            if ('Dense' in layer):
-                x = Dense(**l)(x)
-        out = Dense(self._n_actions, activation='linear', name='action_values')(x)
-        model = Model(inputs=input_board, outputs=out)
-        model.compile(optimizer=RMSprop(0.0005), loss=mean_huber_loss)
-"""
-
-        # used the layers from json file v17.1
-
+        # using the layers from json file v17.1
         model = DeepQModule()
-        """
-        criterion = mean_huber_loss
-        optimizer = torch.optim.RMSprop(model.parameters(), lr=0.0005)
-        input_tensor = torch.randn(self._n_frames, self._board_size, self._board_size)
-        # print('input', input_tensor.shape)
-        # out = model(input_tensor)"""
-
-        """print(input_tensor.size())
-        x = nn.Conv2d(2, 16, (3, 3))(input_tensor)
-        x = nn.ReLU()(x)
-        x = nn.Conv2d(16, 32, (3, 3))(x)
-        x = nn.ReLU()(x)
-        x = nn.Conv2d(32, 64, (6, 6))(x)
-        x = nn.ReLU()(x)
-        print("before flatten:", x.size())
-
-        x = nn.Flatten()(x)
-        print("after flatten:", x.size())
-
-        x = nn.Linear(1, 64)(x)
-        x = nn.ReLU()(x)
-
-        out = nn.Linear(64, self._n_actions)(x)
-        print("layer out size:", out.size())
-
-        model = nn.Module()
-
-        input_board = Input((self._board_size, self._board_size, self._n_frames,), name='input')
-        x = Conv2D(16, (3, 3), activation='relu', data_format='channels_last')(input_board)
-        x = Conv2D(32, (3, 3), activation='relu', data_format='channels_last')(x)
-        x = Conv2D(64, (6, 6), activation='relu', data_format='channels_last')(x)
-        x = Flatten()(x)
-        x = Dense(64, activation='relu', name='action_prev_dense')(x)
-        # this layer contains the final output values, activation is linear since
-        # the loss used is huber or mse
-        out = Dense(self._n_actions, activation='linear', name='action_values')(x)
-        # compile the model
-        model = Model(inputs=input_board, outputs=out)
-        model.compile(optimizer=RMSprop(0.0005), loss=mean_huber_loss)
-        # model.compile(optimizer=RMSprop(0.0005), loss='mean_squared_error')"""
+        self.optimizer = torch.optim.RMSprop(model.parameters(), lr=0.0005)
 
         return model
 
@@ -624,14 +535,9 @@ class DeepQLearningAgent(Agent):
             assert isinstance(iteration, int), "iteration should be an integer"
         else:
             iteration = 0
-        # print(iteration)
-        # print(file_path)
         self._model.load_state_dict(torch.load("{}/model_{:04d}.pt".format(file_path, iteration)))
         if (self._use_target_net):
             self._target_net.load_state_dict(torch.load("{}/model_{:04d}_target.pt".format(file_path, iteration)))
-
-            # self._target_net.load_weights("{}/model_{:04d}_target.h5".format(file_path, iteration))
-        # print("Couldn't locate models at {}, check provided path".format(file_path))
 
     def print_models(self):
         """Print the current models using summary method"""
@@ -678,24 +584,28 @@ class DeepQLearningAgent(Agent):
             r = np.sign(r)
         # calculate the discounted reward, and then train accordingly
         current_model = self._target_net if self._use_target_net else self._model
+        optimizer = torch.optim.RMSprop(current_model.parameters(), lr=0.0005)
+
         next_model_outputs = self._get_model_outputs(next_s, current_model)
         # our estimate of expexted future discounted reward
         discounted_reward = r + \
                             (self._gamma * np.max(np.where(legal_moves == 1, next_model_outputs, -np.inf),
-                                                  axis=1) \
-                             .reshape(-1, 1)) * (1 - done)
+                                                  axis=1).reshape(-1, 1)) * (1 - done)
         # create the target variable, only the column with action has different value
         target = self._get_model_outputs(s)
         # we bother only with the difference in reward estimate at the selected action
         target = (1 - a) * target + a * discounted_reward
         # fit
-        # print(self._normalize_board(s).shape)
+        #print('target', target)
+        """print(s.shape)
+        print(self._normalize_board(s).shape)
+        print(target.shape)
+        print(next_model_outputs.shape)"""
+        loss = criterion(torch.Tensor(current_model(torch.Tensor(self._prepare_input(s)))), torch.Tensor(target))
         optimizer.zero_grad()
-        loss = criterion(torch.Tensor(next_model_outputs), torch.Tensor(target))
+        loss.backward()
         optimizer.step()
-        # print('loss', loss)
-        # loss = round(loss, 5)
-        return loss
+        return loss.detach().numpy()
 
     def update_target_net(self):
 
@@ -1029,6 +939,5 @@ class AdvantageActorCriticAgent(DeepQLearningAgent):
         optimizer.zero_grad()
         loss.backward()
         optimizer.step()
-
         loss = [loss.detach().numpy(), actor_loss.detach().numpy(), critic_loss.detach().numpy()]
         return loss[0] if len(loss) == 1 else loss

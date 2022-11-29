@@ -41,7 +41,7 @@ with open('model_config/{:s}.json'.format(version), 'r') as f:
 
 # define no of episodes, logging frequency
 # episodes = 2 * (10**5)
-episodes = 2 * (10**4)
+episodes = 2 * (10**3)
 log_frequency = 500
 games_eval = 8
 

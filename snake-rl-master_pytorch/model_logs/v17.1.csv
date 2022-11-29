@@ -1,4 +1,5 @@
 iteration,reward_mean,length_mean,games,loss
-500,-1.0,2.0,10,"[array(-1.2662497e+09, dtype=float32), array(-1.2667345e+09, dtype=float32), array(484753.56, dtype=float32)]"
-1000,-0.92,2.08,12,"[array(-1.9145896e+10, dtype=float32), array(-1.9149722e+10, dtype=float32), array(3825378., dtype=float32)]"
-1500,-1.0,2.0,9,"[array(-9.613357e+10, dtype=float32), array(-9.6146645e+10, dtype=float32), array(13077718., dtype=float32)]"
+500,-1.0,2.0,8,nan
+1000,-1.0,2.0,9,nan
+1500,-1.0,2.0,10,nan
+2000,-1.0,2.0,8,nan

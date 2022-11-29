@@ -409,16 +409,10 @@ class DeepQLearningAgent(Agent):
         x = Conv2D(16, (3,3), activation='relu', data_format='channels_last')(input_board)
         x = Conv2D(32, (3,3), activation='relu', data_format='channels_last')(x)
         x = Conv2D(64, (6,6), activation='relu', data_format='channels_last')(x)
-        # print("before flatten", x.shape)
 
         x = Flatten()(x)
-        # print("after flatten", x.shape)
-        x = Dense(64, activation = 'relu', name='action_prev_dense')(x)
-        # print("after fc1", x.shape)
-        # this layer contains the final output values, activation is linear since
-        # the loss used is huber or mse
+        x = Dense(64, activation='relu', name='action_prev_dense')(x)
         out = Dense(self._n_actions, activation='linear', name='action_values')(x)
-        # print("after out", out.shape)
 
         # compile the model
         model = Model(inputs=input_board, outputs=out)
