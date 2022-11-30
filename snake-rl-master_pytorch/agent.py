@@ -71,9 +71,9 @@ class DeepQModule(nn.Module):
         super(DeepQModule, self).__init__()
         self.conv1 = nn.Conv2d(2, 16, (3, 3))
         self.conv2 = nn.Conv2d(16, 32, (3, 3))
-        self.conv3 = nn.Conv2d(32, 64, (6, 6))
+        self.conv3 = nn.Conv2d(32, 64, (5, 5))
         self.flat = nn.Flatten()
-        self.fc1 = nn.Linear(64, 64)
+        self.fc1 = nn.Linear(256, 64)
         self.out = nn.Linear(64, 4)
 
     def forward(self, x):
@@ -343,6 +343,7 @@ class DeepQLearningAgent(Agent):
         if (self._use_target_net):
             self._target_net = self._agent_model()
             self.update_target_net()
+        #self.optimizer = torch.optim.RMSprop(self._model.parameters(), lr=0.0005)
 
     def _prepare_input(self, board):
         """Reshape input and normalize
@@ -357,11 +358,11 @@ class DeepQLearningAgent(Agent):
         board : Numpy array
             Processed and normalized board
         """
-        # print('`\nraw board:', board.shape)
         if (board.ndim == 3):
             board = board.reshape((1,) + self._input_shape)
+
+        # rolling the axis to change shape (64, 2, 10, 10) to (64, 10, 10, 2)
         board = np.rollaxis(board, 3, 1)
-        # print('axis rolled:', board.shape)
 
         board = self._normalize_board(board.copy())
         return board.copy()
@@ -382,20 +383,10 @@ class DeepQLearningAgent(Agent):
             Predicted model outputs on board,
             of shape board.shape[0] * num actions
         """
-        # print("boardshape before:", board.shape)
-
         # to correct dimensions and normalize
         board = torch.Tensor(self._prepare_input(board))
-        # print("boardshape after:", board.shape)
-        # the default model to use
         if model is None:
             model = self._model
-        # print('shape', torch.squeeze(board[0]).shape)
-        outputs = []
-        """for i in board:
-            outputs.append(model(i).detach().numpy())"""
-        # print('output', model(board[0]).shape)
-        # return np.array(outputs)
         return model(board).detach().numpy()
 
     def _normalize_board(self, board):
@@ -442,14 +433,9 @@ class DeepQLearningAgent(Agent):
         model : TensorFlow Graph
             DQN model graph
         """
-        # define the input layer, shape is dependent on the board size and frames
-        with open('model_config/{:s}.json'.format(self._version), 'r') as f:
-            m = json.loads(f.read())
-
         # using the layers from json file v17.1
         model = DeepQModule()
         self.optimizer = torch.optim.RMSprop(model.parameters(), lr=0.0005)
-
         return model
 
     def set_weights_trainable(self):
@@ -584,7 +570,6 @@ class DeepQLearningAgent(Agent):
             r = np.sign(r)
         # calculate the discounted reward, and then train accordingly
         current_model = self._target_net if self._use_target_net else self._model
-        optimizer = torch.optim.RMSprop(current_model.parameters(), lr=0.0005)
 
         next_model_outputs = self._get_model_outputs(next_s, current_model)
         # our estimate of expexted future discounted reward
@@ -601,10 +586,10 @@ class DeepQLearningAgent(Agent):
         print(self._normalize_board(s).shape)
         print(target.shape)
         print(next_model_outputs.shape)"""
-        loss = criterion(torch.Tensor(current_model(torch.Tensor(self._prepare_input(s)))), torch.Tensor(target))
-        optimizer.zero_grad()
+        loss = criterion(torch.Tensor(self._model(torch.Tensor(self._prepare_input(s)))), torch.Tensor(target))
+        self.optimizer.zero_grad()
         loss.backward()
-        optimizer.step()
+        self.optimizer.step()
         return loss.detach().numpy()
 
     def update_target_net(self):
