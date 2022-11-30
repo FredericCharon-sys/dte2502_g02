@@ -102,11 +102,11 @@ class AACModule(nn.Module):
         x = F.relu(self.conv2(x))
         x = self.flat(x)
         x = F.relu(self.fc1(x))
-        if self.param == 0:         # p==0: model_logits
+        if self.param == "logits":
             return self.a_log(x)
-        elif self.param == 1:       # p==1: model_values
+        elif self.param == "values":
             return self.s_val(x)
-        elif self.param == 2:       # p==2: model_full
+        elif self.param == "full":
             return self.a_log(x), self.s_val(x)
 
 
@@ -572,7 +572,7 @@ class DeepQLearningAgent(Agent):
         current_model = self._target_net if self._use_target_net else self._model
 
         next_model_outputs = self._get_model_outputs(next_s, current_model)
-        # our estimate of expexted future discounted reward
+        # our estimate of expected future discounted reward
         discounted_reward = r + \
                             (self._gamma * np.max(np.where(legal_moves == 1, next_model_outputs, -np.inf),
                                                   axis=1).reshape(-1, 1)) * (1 - done)
@@ -580,12 +580,8 @@ class DeepQLearningAgent(Agent):
         target = self._get_model_outputs(s)
         # we bother only with the difference in reward estimate at the selected action
         target = (1 - a) * target + a * discounted_reward
+
         # fit
-        #print('target', target)
-        """print(s.shape)
-        print(self._normalize_board(s).shape)
-        print(target.shape)
-        print(next_model_outputs.shape)"""
         loss = criterion(torch.Tensor(self._model(torch.Tensor(self._prepare_input(s)))), torch.Tensor(target))
         self.optimizer.zero_grad()
         loss.backward()
@@ -660,9 +656,9 @@ class AdvantageActorCriticAgent(DeepQLearningAgent):
             A2C model complete graph
         """
 
-        model_logits = AACModule(0)
-        model_values = AACModule(1)
-        model_full = AACModule(2)
+        model_logits = AACModule("logits")
+        model_values = AACModule("values")
+        model_full = AACModule("full")
         """input_board = Input((self._board_size, self._board_size, self._n_frames,))
         x = Conv2D(16, (3, 3), activation='relu', data_format='channels_last')(input_board)
         x = Conv2D(32, (3, 3), activation='relu', data_format='channels_last')(x)
