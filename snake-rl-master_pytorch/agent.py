@@ -820,18 +820,11 @@ class AdvantageActorCriticAgent(DeepQLearningAgent):
         optimizer = torch.optim.RMSprop(model.parameters(), lr=0.0005)
 
         # calculate loss
-        multi = torch.mul(advantage, log_policy)
         J = torch.sum(torch.multiply(advantage, log_policy)) / num_games
         entropy = -torch.sum(torch.multiply(policy, log_policy)) / num_games
         actor_loss = -J - beta * entropy
         critic_loss = mean_huber_loss(torch.Tensor(critic_target), model_out[1])
         loss = actor_loss + critic_loss
-        # get the gradients
-        # grads = torch.autograd.grad(loss, model.trainable_weights, grad_outputs=torch.ones_like(loss))
-        # grads = tape.gradient(loss, model.trainable_weights)
-        # grads = [tf.clip_by_value(grad, -5, 5) for grad in grads]
-        # run the optimizer
-        # self._optimizer.apply_gradients(zip(grads, model.trainable_variables))
         optimizer.zero_grad()
         loss.backward()
         optimizer.step()
